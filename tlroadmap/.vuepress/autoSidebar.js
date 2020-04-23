@@ -1,24 +1,42 @@
-let SIDEBAR_DATA = Object.create(null);
+const { Page } = require('vuepress');
 
-
-function getGroupPage(page, key) {
+/**
+ * Create non-clickable sidebar group.
+ * @param {Page} page - vuepress.Page
+ * @param {string} key - name of group (dir) or leaf
+ * @returns {{children: [], collapsable: boolean, title: string, key: string}}
+ */
+function getGroupData(page, key) {
   return {
     key: key,
-    title: page.frontmatter['title'] || page.title,
+    title: page.frontmatter.title || page.title,
     children: [],
     collapsable: false,
   }
 }
 
-function getPageLeaf(page, key) {
-  let leaf = getGroupPage(page, key)
+/**
+ * Create sidebar clickable element.
+ * @param {Page} page - vuepress.Page
+ * @param {string} key - name of group (dir) or leaf
+ * @returns {{children: *[], collapsable: boolean, title: string, path: string, key: string}}
+ */
+function getLeafData(page, key) {
+  let leaf = getGroupData(page, key)
   leaf['path'] = page.path
   return leaf
 }
 
+/**
+ * Find parent in tree structure.
+ * Iterates over keys and on every step tries to find next subtree within children.
+ * @param {{children: *[], collapsable: boolean, title: string, path: string, key: string}} tree
+ * @param {string[]} keys
+ * @returns {{children: *[], collapsable: boolean, title: string, path: string, key: string}}
+ */
 function findParent(tree, keys) {
   let parent = tree
-  for (const key of keys.slice(1)) {
+  for (const key of keys) {
     for (const subtree of parent.children) {
       if (subtree.key === key) {
         parent = subtree;
@@ -29,6 +47,7 @@ function findParent(tree, keys) {
   return parent
 }
 
+let SIDEBAR_DATA = Object.create(null);
 module.exports = (options, ctx) => ({
   name: "auto-sidebar-plugin",
   async ready() {
@@ -41,15 +60,20 @@ module.exports = (options, ctx) => ({
     });
 
     const rootPage = pages[0]
+    const tree = getLeafData(rootPage)
 
-    const tree = getPageLeaf(rootPage, '')
     for (const page of pages.slice(1)) {
-      const keys = page.path.endsWith('/') ? page.path.slice(0, -1).split('/') : page.path.split('/')
+      // split path by `/` and remove empty parts
+      // /abc/ -> ["abc"]
+      // /abc/d.html -> ["abc", "d.html"]
+      const keys = page.path.split('/').filter(pathPart => pathPart)
       const parent = findParent(tree, keys)
+
       if (page._strippedContent.trim()) {
-        parent.children.push(getPageLeaf(page))
+        // if page has content we should create clickable PageLeaf
+        parent.children.push(getLeafData(page, keys[keys.length - 1]))
       } else {
-        parent.children.push(getGroupPage(page, keys[keys.length - 1]))
+        parent.children.push(getGroupData(page, keys[keys.length - 1]))
       }
     }
 
@@ -57,7 +81,7 @@ module.exports = (options, ctx) => ({
       tree,
     ]
   },
-  async  enhanceAppFiles() {
+  async enhanceAppFiles() {
     return {
       name: 'auto-sidebar-enhance-app',
       content: `export default ({ siteData }) => { 
