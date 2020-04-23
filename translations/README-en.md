@@ -209,7 +209,7 @@ If you don't agree with any of the existing descriptions or think you can improv
 
 ### Time-management
 - Setting personal goals
-- [Time management](../tlroadmap/old/self-improvement/time-management.md)
+- [Time management](../tlroadmap/personal-skills/time-management/time-management.md)
 - Priority management
 <!--roadmap.mm table of contents end-->
 
