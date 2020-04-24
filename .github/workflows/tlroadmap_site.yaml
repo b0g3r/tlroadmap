@@ -1,16 +1,18 @@
-name: TL Roadmap site
+name: Publish site
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
   # generate_puml?
 
   generate-roadmap-freemind:
-    name: Generate roadmap in freemind (.mm) format
+    name: Generate roadmap.mm
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -43,7 +45,7 @@ jobs:
           path: roadmap.mm
 
   generate-roadmap-image:
-    name: Generate roadmap in .svg and .png format
+    name: Generate roadmap.svg, roadmap.png
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -65,8 +67,8 @@ jobs:
           name: images
           path: images
 
-  deploy-vuepress:
-    name: Build and deploy VuePress site
+  publish-vuepress:
+    name: Build and publish VuePress site
     runs-on: ubuntu-latest
     needs:
       - generate-roadmap-image
@@ -118,13 +120,25 @@ jobs:
         env:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        run: yarn site:publish:prod
+        run: |
+          deploy_url=$(yarn -s site:publish:prod | jq -r .deploy_url)
+          echo "::set-output name=deploy-url::$deploy_url"
 
       - name: Publish to netlify [preview]
+        id: publish-preview
         if: github.event_name == 'pull_request'
         env:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        run: yarn site:publish:prod
+        run: |
+          deploy_url=$(yarn -s site:publish:preview | jq -r .deploy_url)
+          echo "::set-output name=deploy-url::$deploy_url"
 
-      # parse json and write comment to pr
+      - name: Create GitHub deployment
+        uses: chrnorm/deployment-action@v1.2.0
+        with:
+          token: "${{ github.token }}"
+          environment: "${{ (github.event_name == 'pull_request' && 'review') || 'prod' }}"
+          ref: "${{ github.head_ref }}"
+          target_url: "${{ steps.publish-preview.outputs.deploy-url }}"
+          initial_status: success
