@@ -34,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: vuepress
-          path: public
+          path: tlroadmap/.vuepress/dist
 
   # generate_puml?
 
