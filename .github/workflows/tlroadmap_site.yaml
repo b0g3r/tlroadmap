@@ -1,0 +1,93 @@
+name: TL Roadmap site
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build_vuepress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Build vuepress site
+        run: |
+          yarn install --frozen-lockfile
+          yarn run site:build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: vuepress
+          path: public
+
+  # generate_puml?
+
+  convert_to_freemind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tools/requirements.txt
+
+      - name: Run plantuml2freemind
+        run: plantuml2freemind convert roadmap.puml roadmap.mm --no-interaction
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: freemind
+          path: roadmap.mm
+
+  convert_to_image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Java
+        uses: actions/setup-java@v1
+        with:
+          java-version: '11'
+
+      - name: Generate .png and .svg
+        run: |
+          mkdir images
+          cat roadmap.puml | java -jar tools/plantuml.jar -charset UTF-8 -pipe > images/roadmap.png
+          cat roadmap.puml | java -jar tools/plantuml.jar -charset UTF-8 -pipe > images/roadmap.svg
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: images
+          path: images
