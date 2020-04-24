@@ -9,7 +9,8 @@ on:
 jobs:
   # generate_puml?
 
-  generate_roadmap_freemind:
+  generate-roadmap-freemind:
+    name: Generate roadmap in freemind (.mm) format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -41,7 +42,8 @@ jobs:
           name: freemind
           path: roadmap.mm
 
-  generate_roadmap_image:
+  generate-roadmap-image:
+    name: Generate roadmap in .svg and .png format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -63,11 +65,12 @@ jobs:
           name: images
           path: images
 
-  deploy_vuepress:
+  deploy-vuepress:
+    name: Build and deploy VuePress site
     runs-on: ubuntu-latest
     needs:
-      - generate_roadmap_image
-      - generate_roadmap_freemind
+      - generate-roadmap-image
+      - generate-roadmap-freemind
     steps:
       - uses: actions/checkout@v2
 
@@ -79,11 +82,10 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v1
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn-lock.json') }}
+          path: ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles(format('{0}{1}', github.workspace, '/yarn.lock')) }}
           restore-keys: |
-            ${{ runner.os }}-node-
-
+            ${{ runner.os }}-yarn-
 
       - uses: actions/download-artifact@v1
         with:
