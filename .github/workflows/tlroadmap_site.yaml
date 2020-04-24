@@ -7,38 +7,9 @@ on:
     branches: [ master ]
 
 jobs:
-  build_vuepress:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Setup Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '13.x'
-
-      - name: Cache dependencies
-        uses: actions/cache@v1
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Build vuepress site
-        run: |
-          yarn install --frozen-lockfile
-          yarn run site:build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v1
-        with:
-          name: vuepress
-          path: tlroadmap/.vuepress/dist
-
   # generate_puml?
 
-  convert_to_freemind:
+  generate_roadmap_freemind:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -70,7 +41,7 @@ jobs:
           name: freemind
           path: roadmap.mm
 
-  convert_to_image:
+  generate_roadmap_image:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -84,10 +55,70 @@ jobs:
         run: |
           mkdir images
           cat roadmap.puml | java -jar tools/plantuml.jar -charset UTF-8 -pipe > images/roadmap.png
-          cat roadmap.puml | java -jar tools/plantuml.jar -charset UTF-8 -pipe > images/roadmap.svg
+          cat roadmap.puml | java -jar tools/plantuml.jar -charset UTF-8 -tsvg -pipe > images/roadmap.svg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
           name: images
           path: images
+
+  build_vuepress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+
+      - uses: actions/download-artifact@v1
+        with:
+          name: images
+
+      - uses: actions/download-artifact@v1
+        with:
+          name: freemind
+
+      - name: Prepare roadmap outputs
+        run: |
+          mv images/roadmap.png tlroadmap/.vuepress/public/
+          mv images/roadmap.svg tlroadmap/.vuepress/public/
+          mv freemind/roadmap.mm tlroadmap/.vuepress/public/
+
+      - name: Build vuepress site
+        run: |
+          yarn install --frozen-lockfile
+          yarn run site:build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: vuepress-site
+          path: tlroadmap/.vuepress/dist
+
+
+  deploy_netlify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: vuepress-site
+
+      - name: Publish to netlify
+        uses: netlify/actions/cli@master
+        env:
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        with:
+          args: deploy --dir=vuepress-site
