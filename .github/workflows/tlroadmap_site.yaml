@@ -63,7 +63,7 @@ jobs:
           name: images
           path: images
 
-  build_vuepress:
+  deploy_vuepress:
     runs-on: ubuntu-latest
     needs:
       - generate_roadmap_image
@@ -99,10 +99,11 @@ jobs:
           mv images/roadmap.svg tlroadmap/.vuepress/public/
           mv freemind/roadmap.mm tlroadmap/.vuepress/public/
 
+      - name: Install js dependencies
+        run: yarn install --frozen-lockfile
+
       - name: Build vuepress site
-        run: |
-          yarn install --frozen-lockfile
-          yarn run site:build
+        run: yarn run site:build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v1
@@ -110,20 +111,18 @@ jobs:
           name: vuepress-site
           path: tlroadmap/.vuepress/dist
 
-
-  deploy_netlify:
-    runs-on: ubuntu-latest
-    needs:
-      - build_vuepress
-    steps:
-      - uses: actions/download-artifact@v1
-        with:
-          name: vuepress-site
-
-      - name: Publish to netlify
-        uses: netlify/actions/cli@master
+      - name: Publish to netlify [prod]
+        if: github.ref == 'refs/heads/master'
         env:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        with:
-          args: deploy --dir=vuepress-site
+        run: yarn site:publish:prod
+
+      - name: Publish to netlify [preview]
+        if: github.event_name == 'pull_request'
+        env:
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: yarn site:publish:prod
+
+      # parse json and write comment to pr
