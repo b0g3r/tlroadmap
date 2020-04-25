@@ -1,0 +1,5 @@
+synchronize:
+  paths:
+  - source: tlroadmap/*.md
+    exclude:
+      - "ru/*.*"
