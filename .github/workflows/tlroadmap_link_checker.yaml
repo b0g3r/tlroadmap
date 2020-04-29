@@ -31,13 +31,17 @@ jobs:
       - name: Build vuepress site
         run: yarn run site:build
 
-      - uses: actions/setup-ruby@v1
+      - name: Check links
+        uses: chabad360/htmlproofer@master
         with:
-          ruby-version: '2.6' # Version range or exact version of a Ruby version to use, using semvers version range syntax.
-
-      - run: |
-          gem install html-proofer
-
-      - name: Use checker
-        run: |
-          htmlproofer tlroadmap/.vuepress/dist
+          directory: "./tlroadmap/.vuepress/dist"
+          arguments: >-
+            --assume-extension
+            --typhoeus-config '{"timeout": 60}'
+            --url-ignore "/www\.consultant\.ru/.*/"
+#          "/www.consultant.ru/"
+#          "/assets/deeper.jpg"
+#          "boss.blogs.nytimes.com"
+#          "blog.unusual-concepts.ru" # timeout
+#          "/assets/test-pyramid.png"
+#          "ttps://techradar.avito.ru/" # timeout
