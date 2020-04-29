@@ -73,7 +73,7 @@ module.exports = {
   },
   plugins: [
     [
-      require('./localeFilesToLocalePrefix.js'),
+      '@b0g3r/locale-prefix',
       {
         locales: LOCALES,
       },
