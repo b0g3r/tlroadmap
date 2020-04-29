@@ -1,0 +1,43 @@
+name: Check links
+
+#on:
+#  schedule:
+#    - cron:  '0 0 * * 1'
+on: [push]
+
+jobs:
+  check-links:
+    name: Check links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+
+      - name: Cache dependencies
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles(format('{0}{1}', github.workspace, '/yarn.lock')) }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install js dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build vuepress site
+        run: yarn run site:build
+
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6' # Version range or exact version of a Ruby version to use, using semvers version range syntax.
+
+      - run: |
+          gem install html-proofer
+
+      - name: Use checker
+        run: |
+          htmlproofer tlroadmap/.vuepress/dist
