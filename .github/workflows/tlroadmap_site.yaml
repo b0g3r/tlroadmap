@@ -179,9 +179,6 @@ jobs:
         with:
           node-version: '13.x'
 
-      - name: Install netlify-cli
-        run: npx install netlify-cli
-
       - name: Publish to netlify [prod]
         id: publish-prod
         if: github.ref == 'refs/heads/master'
@@ -193,7 +190,7 @@ jobs:
         # preview-abcde--subdomain.example.com -> subdomain.example.com
         # Unfortunately, netlify-cms returns draft address :(
         run: |
-          draft_url=$(netlify deploy --json --dir=vuepress-site --prod | jq -r .deploy_url)
+          draft_url=$(npx netlify-cli deploy --json --dir=vuepress-site --prod | jq -r .deploy_url)
           deploy_host=$(echo $draft_url | awk -F'--' '{print $NF}')
           echo "::set-output name=deploy-url::https://$deploy_host"
 
@@ -204,7 +201,7 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
         run: |
-          deploy_url=$(netlify deploy --json --dir=vuepress-site | jq -r .deploy_url)
+          deploy_url=$(npx netlify-cli deploy --json --dir=vuepress-site | jq -r .deploy_url)
           echo "::set-output name=deploy-url::$deploy_url"
 
       - name: Create GitHub deployment
