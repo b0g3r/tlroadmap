@@ -79,7 +79,7 @@ module.exports = {
       },
     ],
     [
-      require('./autoSidebar.js'),
+      '@b0g3r/generate-tree',
       {
         locales: LOCALES,
       },
