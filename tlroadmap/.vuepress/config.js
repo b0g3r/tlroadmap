@@ -44,6 +44,10 @@ module.exports = (ctx) => ({
     repo: 'b0g3r/tlroadmap',
     docsDir: 'tlroadmap',
     editLinks: true,
+    algolia: ctx.isProd ? ({
+      apiKey: '1b6a64304b26373caaed9a18d2daf8c6',
+      indexName: 'b0g3r_tlroadmap'
+    }) : null,
     locales: {
       '/': {
         selectText: 'Русский',
